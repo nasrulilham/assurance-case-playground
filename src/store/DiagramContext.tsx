@@ -1,5 +1,9 @@
-import React, { createContext, useContext, useReducer, useState } from 'react';
+import React, { createContext, useContext, useReducer, useRef } from 'react';
 import { ShapeOnCanvas, Connection } from '../types/shapes';
+import { exportDiagram as exportDiagramUtil } from '../components/export/exportutils';
+import { importDiagram as importDiagramUtil } from '../components/import/importutils';
+// Import the shape data
+import { gsnElements, gsnExtensionElements, sacmElements, sacmExtensionElements } from '../data/shapeData';
 
 interface DiagramState {
   shapes: ShapeOnCanvas[];
@@ -34,6 +38,9 @@ interface DiagramContextType extends DiagramState {
   addConnection: (connection: Connection) => void;
   updateConnection: (id: string, points: number[]) => void;
   deleteConnection: (id: string) => void;
+  stageRef: React.RefObject<any>;
+  exportDiagram: (format: string) => void;
+  importDiagram: (content: string, format: 'json' | 'xml') => void;
 }
 
 const initialState: DiagramState = {
@@ -66,7 +73,8 @@ type DiagramAction =
   | { type: 'CANCEL_CONNECTION' }
   | { type: 'ADD_CONNECTION'; payload: Connection }
   | { type: 'UPDATE_CONNECTION'; payload: { id: string; points: number[] } }
-  | { type: 'DELETE_CONNECTION'; payload: string };
+  | { type: 'DELETE_CONNECTION'; payload: string }
+  | { type: 'SET_DIAGRAM'; payload: { shapes: ShapeOnCanvas[], connections: Connection[] } };
 
 const diagramReducer = (state: DiagramState, action: DiagramAction): DiagramState => {
   switch (action.type) {
@@ -156,16 +164,10 @@ const diagramReducer = (state: DiagramState, action: DiagramAction): DiagramStat
       const newConnections = state.connections.map(conn =>
         conn.id === id ? { ...conn, points } : conn
       );
-      const newHistory = state.history.slice(0, state.historyIndex + 1);
-      newHistory.push({ shapes: state.shapes, connections: newConnections });
       
       return {
         ...state,
         connections: newConnections,
-        history: newHistory,
-        historyIndex: state.historyIndex + 1,
-        canUndo: true,
-        canRedo: false,
       };
     }
     
@@ -235,6 +237,22 @@ const diagramReducer = (state: DiagramState, action: DiagramAction): DiagramStat
       };
     }
     
+    case 'SET_DIAGRAM': {
+      const { shapes, connections } = action.payload;
+      const newHistory = state.history.slice(0, state.historyIndex + 1);
+      newHistory.push({ shapes, connections });
+      
+      return {
+        ...state,
+        shapes,
+        connections,
+        history: newHistory,
+        historyIndex: state.historyIndex + 1,
+        canUndo: true,
+        canRedo: false,
+      };
+    }
+    
     default:
       return state;
   }
@@ -244,6 +262,7 @@ const DiagramContext = createContext<DiagramContextType | undefined>(undefined);
 
 export const DiagramProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(diagramReducer, initialState);
+  const stageRef = useRef<any>(null);
   
   const addShape = (shape: ShapeOnCanvas) => {
     dispatch({ type: 'ADD_SHAPE', payload: shape });
@@ -322,6 +341,56 @@ export const DiagramProvider: React.FC<{ children: React.ReactNode }> = ({ child
     dispatch({ type: 'TOGGLE_SIDEBAR' });
   };
   
+    const exportDiagram = async (format: string) => {
+    console.log('exportDiagram called with format:', format);
+    console.log('stageRef:', stageRef);
+    
+    if (!stageRef || !stageRef.current) {
+      console.error('Stage reference is not available in context');
+      throw new Error('Canvas reference is not available. Please try again.');
+    }
+    
+    try {
+      await exportDiagramUtil(format, stageRef, { 
+        shapes: state.shapes, 
+        connections: state.connections 
+      });
+      console.log(`Export to ${format} completed successfully`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      throw error; // Re-throw to let the UI handle the error
+    }
+  };
+  
+  const importDiagram = (content: string, format: 'json' | 'xml') => {
+    try {
+      const { shapes, connections } = importDiagramUtil(content, format);
+      
+      // Add preview from shape data
+      const shapesWithPreview = shapes.map(shape => {
+        // Find a matching shape in the data to get its preview
+        const matchingShape = gsnElements.find(s => s.type === shape.type) || 
+                             gsnExtensionElements.find(s => s.type === shape.type) ||
+                             sacmElements.find(s => s.type === shape.type) ||
+                             sacmExtensionElements.find(s => s.type === shape.type);
+        
+        return {
+          ...shape,
+          preview: matchingShape?.preview || null
+        };
+      });
+      
+      // Update the state with imported data
+      dispatch({ 
+        type: 'SET_DIAGRAM',
+        payload: { shapes: shapesWithPreview, connections }
+      });
+    } catch (error) {
+      console.error('Import error:', error);
+      alert(`Import failed: ${error}`);
+    }
+  };
+  
   const contextValue: DiagramContextType = {
     ...state,
     addShape,
@@ -340,6 +409,9 @@ export const DiagramProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setZoomLevel,
     setStageSize,
     toggleSidebar,
+    stageRef,
+    exportDiagram,
+    importDiagram,
   };
   
   return (

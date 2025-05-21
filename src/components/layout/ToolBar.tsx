@@ -1,11 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Layout, Import, Upload, Undo2, Redo2, Type 
 } from 'lucide-react';
 import { useDiagramContext } from '../../store/DiagramContext';
 import ZoomSlider from '../ui/ZoomSlider';
+import ExportModal from '../export/export';
+import ImportModal from '../import/import';
 
 const ToolBar: React.FC = () => {
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  
   const { 
     canUndo, 
     canRedo, 
@@ -23,12 +28,18 @@ const ToolBar: React.FC = () => {
           <span className="ml-1.5 text-sm">Template</span>
         </button>
         
-        <button className="p-1.5 rounded-md text-gray-700 hover:bg-gray-100 flex items-center">
+        <button 
+          className="p-1.5 rounded-md text-gray-700 hover:bg-gray-100 flex items-center"
+          onClick={() => setShowImportModal(true)}
+        >
           <Import size={20} />
           <span className="ml-1.5 text-sm">Import</span>
         </button>
         
-        <button className="p-1.5 rounded-md text-gray-700 hover:bg-gray-100 flex items-center">
+        <button 
+          className="p-1.5 rounded-md text-gray-700 hover:bg-gray-100 flex items-center"
+          onClick={() => setShowExportModal(true)}
+        >
           <Upload size={20} />
           <span className="ml-1.5 text-sm">Export</span>
         </button>
@@ -74,6 +85,18 @@ const ToolBar: React.FC = () => {
           </svg>
         </button>
       </div>
+      
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+      />
+      
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+      />
     </div>
   );
 };

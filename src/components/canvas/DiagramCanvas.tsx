@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Stage, Layer } from 'react-konva';
 import { useDiagramContext } from '../../store/DiagramContext';
 import GridBackground from './GridBackground';
@@ -7,7 +7,6 @@ import Connection from './Connection';
 import { KonvaEventObject } from 'konva/lib/Node';
 
 const DiagramCanvas: React.FC = () => {
-  const stageRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const { 
@@ -20,7 +19,8 @@ const DiagramCanvas: React.FC = () => {
     zoomLevel,
     setStageSize,
     cancelConnection,
-    isConnecting
+    isConnecting,
+    stageRef
   } = useDiagramContext();
 
   useEffect(() => {
@@ -82,7 +82,7 @@ const DiagramCanvas: React.FC = () => {
       onDrop={handleDrop}
     >
       <Stage
-        ref={stageRef}
+        ref={stageRef} // Connect the ref to the Stage component
         width={containerRef.current?.clientWidth || window.innerWidth}
         height={containerRef.current?.clientHeight || window.innerHeight}
         scaleX={zoomLevel}
