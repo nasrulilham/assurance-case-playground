@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useState } from 'react';
+import React, { createContext, useContext, useReducer} from 'react';
 import { ShapeOnCanvas, Connection } from '../types/shapes';
 
 interface DiagramState {
@@ -34,6 +34,7 @@ interface DiagramContextType extends DiagramState {
   addConnection: (connection: Connection) => void;
   updateConnection: (id: string, points: number[]) => void;
   deleteConnection: (id: string) => void;
+  clearDiagram: () => void;
 }
 
 const initialState: DiagramState = {
@@ -66,7 +67,8 @@ type DiagramAction =
   | { type: 'CANCEL_CONNECTION' }
   | { type: 'ADD_CONNECTION'; payload: Connection }
   | { type: 'UPDATE_CONNECTION'; payload: { id: string; points: number[] } }
-  | { type: 'DELETE_CONNECTION'; payload: string };
+  | { type: 'DELETE_CONNECTION'; payload: string }
+  | { type: 'CLEAR_DIAGRAM' };
 
 const diagramReducer = (state: DiagramState, action: DiagramAction): DiagramState => {
   switch (action.type) {
@@ -235,6 +237,20 @@ const diagramReducer = (state: DiagramState, action: DiagramAction): DiagramStat
       };
     }
     
+    case 'CLEAR_DIAGRAM': {
+      return {
+        ...state,
+        shapes: [],
+        connections: [],
+        selectedId: null,
+        selectedConnectionId: null,
+        history: [...state.history, { shapes: [], connections: [] }],
+        historyIndex: state.historyIndex + 1,
+        canUndo: true,
+        canRedo: false,
+      };
+    }
+    
     default:
       return state;
   }
@@ -321,6 +337,11 @@ export const DiagramProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const toggleSidebar = () => {
     dispatch({ type: 'TOGGLE_SIDEBAR' });
   };
+
+  const clearDiagram = () => {
+    dispatch({ 
+      type: 'CLEAR_DIAGRAM' });
+  };
   
   const contextValue: DiagramContextType = {
     ...state,
@@ -340,6 +361,7 @@ export const DiagramProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setZoomLevel,
     setStageSize,
     toggleSidebar,
+    clearDiagram,
   };
   
   return (
