@@ -1,242 +1,503 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, User, Bot, Wand2, Workflow, ListTree } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Sparkles, Send, X } from 'lucide-react';
 import { useDiagramContext } from '../../store/DiagramContext';
-import { getAIResponse } from '../../services/aiService';
-import { ShapeOnCanvas } from '../../types/shapes';
+import { gsnElements } from '../../data/shapeData';
 
-type Message = {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-  type: 'text' | 'action';
-};
+// Simple message type
+interface Message {
+  content: string;
+  sender: 'user' | 'ai';
+}
 
 const AiPanel: React.FC = () => {
-  const { shapes, connections, addShape, 
-    // updateShapePosition,
-    addConnection } = useDiagramContext();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Hello! I can help you create, analyze, and optimize diagrams. What would you like to do?',
-      sender: 'bot',
-      timestamp: new Date(),
-      type: 'text'
-    }
-  ]);
+  const { addShape, addConnection } = useDiagramContext();
+  
+  // Simple state for chat interface
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([{
+    content: "Hi! I can help you create diagrams. Try asking for a safety case, hazard analysis, or software safety diagram.",
+    sender: 'ai'
+  }]);
   const [inputValue, setInputValue] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const getDiagramContext = () => {
-    const mainElements = shapes.slice(0, 3).map(s => s.text).join(', ');
-    return `Diagram with ${shapes.length} elements (${mainElements}${shapes.length > 3 ? '...' : ''}) and ${connections.length} connections.`;
-  };
-
-  const handleSpecialCommand = async (input: string): Promise<string> => {
-    const lowerInput = input.toLowerCase();
-    
-    if (lowerInput.includes('generate') || lowerInput.includes('create')) {
-      return "I can generate these diagram types:\n1. Flowchart\n2. System Architecture\n3. Sequence Diagram\n\nWhich would you like?";
-    }
-    
-    if (lowerInput.includes('analyze') || lowerInput.includes('review')) {
-      return `Diagram Analysis:\n\n• Elements: ${shapes.length}\n• Connections: ${connections.length}\n• Complexity: ${connections.length > 5 ? 'High' : 'Medium'}\n\nNeed optimization suggestions?`;
-    }
-
-    return await getAIResponse(input, getDiagramContext());
-  };
-
-  const handleSendMessage = async () => {
-    if (inputValue.trim() === '' || isProcessing) return;
-
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputValue,
-      sender: 'user',
-      timestamp: new Date(),
-      type: 'text'
-    };
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsProcessing(true);
-
+  
+  // Start chat button handler
+  const handleStartChat = () => {
     try {
-      // Process special commands or get AI response
-      const response = await handleSpecialCommand(inputValue);
-      
-      // Add bot message
-      const botMessage: Message = {
-        id: Date.now().toString(),
-        text: response,
-        sender: 'bot',
-        timestamp: new Date(),
-        type: 'text'
-      };
-      setMessages(prev => [...prev, botMessage]);
-
-      // Auto-execute diagram actions
-      if (inputValue.toLowerCase().includes('simple flowchart')) {
-        generateFlowchart();
-      }
+      setShowChat(true);
     } catch (error) {
-      console.error("Error processing message:", error);
+      console.error("Error showing chat:", error);
+      alert("Error showing chat interface. See console for details.");
+    }
+  };
+  
+  // Send message handler
+  const handleSendMessage = () => {
+    if (!inputValue.trim()) return;
+    
+    try {
+      // Add user message
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        text: "Sorry, I encountered an error. Please try again.",
-        sender: 'bot',
-        timestamp: new Date(),
-        type: 'text'
+        content: inputValue,
+        sender: 'user'
       }]);
-    } finally {
-      setIsProcessing(false);
+      
+      const userInput = inputValue;
+      setInputValue('');
+      setIsGenerating(true);
+      
+      // Process after a short delay
+      setTimeout(() => {
+        processUserMessage(userInput);
+        setIsGenerating(false);
+        
+        // Scroll to bottom
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 1000);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setIsGenerating(false);
+      setMessages(prev => [...prev, {
+        content: "Sorry, there was an error processing your request.",
+        sender: 'ai'
+      }]);
     }
   };
-
-  // In your AiPanel.tsx
-const generateFlowchart = () => {
-  const newShapes: ShapeOnCanvas[] = [
-    {
-      id: 'start',
-      type: 'ellipse',
-      title: 'Start Node',
-      preview: <div>Start</div>,
-      x: 200,
+  
+  // Process user message and generate appropriate diagram
+  const processUserMessage = (userInput: string) => {
+    const lowerInput = userInput.toLowerCase();
+    let aiResponse = "";
+    
+    // Determine which diagram to generate
+    if (lowerInput.includes('autonomous') || lowerInput.includes('vehicle')) {
+      aiResponse = "I'll create an autonomous vehicle safety diagram for you.";
+      generateAutonomousVehicleDiagram();
+    } 
+    else if (lowerInput.includes('hazard') || lowerInput.includes('risk')) {
+      aiResponse = "Creating a hazard analysis diagram for you.";
+      generateHazardDiagram();
+    }
+    else if (lowerInput.includes('software')) {
+      aiResponse = "Generating a software safety assurance diagram now.";
+      generateSoftwareDiagram();
+    } 
+    else {
+      aiResponse = "I'll create a basic safety case diagram for you.";
+      generateBasicDiagram();
+    }
+    
+    // Add AI response
+    setMessages(prev => [...prev, {
+      content: aiResponse,
+      sender: 'ai'
+    }]);
+  };
+  
+  // Diagram generation functions
+  const generateBasicDiagram = () => {
+    const id1 = Date.now().toString() + "1";
+    const id2 = Date.now().toString() + "2";
+    const id3 = Date.now().toString() + "3";
+    
+    // Add main goal
+    addShape({
+      ...gsnElements[0],
+      id: id1,
+      x: 400,
       y: 100,
-      text: 'Start',
-      width: 80,
-      height: 80
-    },
-    {
-      id: 'process',
-      type: 'rectangle',
-      title: 'Process',
-      preview: <div>Process</div>,
-      x: 200,
-      y: 220,
-      text: 'Process',
-      width: 120,
-      height: 60
-    }
-  ];
-
-  newShapes.forEach(shape => addShape(shape));
-  addConnection({ id: 'conn1', from: 'start', to: 'process', points: [] });
-};
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+      width: 200,
+      height: 80,
+      value: "System is acceptably safe",
+      idText: "G1"
+    });
+    
+    // Add subgoals
+    addShape({
+      ...gsnElements[0],
+      id: id2,
+      x: 300,
+      y: 250,
+      width: 180,
+      height: 70,
+      value: "Hardware is safe",
+      idText: "G2"
+    });
+    
+    addShape({
+      ...gsnElements[0],
+      id: id3,
+      x: 500,
+      y: 250,
+      width: 180,
+      height: 70,
+      value: "Software is safe",
+      idText: "G3"
+    });
+    
+    // Add connections
+    setTimeout(() => {
+      addConnection({
+        id: `conn-${Date.now()}-1`,
+        from: id1,
+        to: id2,
+        points: []
+      });
+      
+      addConnection({
+        id: `conn-${Date.now()}-2`,
+        from: id1,
+        to: id3,
+        points: []
+      });
+    }, 100);
   };
-
+  
+  const generateAutonomousVehicleDiagram = () => {
+    const id1 = Date.now().toString() + "1";
+    const id2 = Date.now().toString() + "2";
+    const id3 = Date.now().toString() + "3";
+    const id4 = Date.now().toString() + "4";
+    
+    // Add main goal
+    addShape({
+      ...gsnElements[0],
+      id: id1,
+      x: 400,
+      y: 100,
+      width: 240,
+      height: 80,
+      value: "Autonomous vehicle is acceptably safe",
+      idText: "G1"
+    });
+    
+    // Add strategy
+    addShape({
+      ...gsnElements[1], // Using extension shape
+      id: id2,
+      x: 400,
+      y: 200,
+      width: 220,
+      height: 70,
+      value: "Argument by operational scenarios",
+      idText: "S1",
+      cornerRadius: 5
+    });
+    
+    // Add subgoals
+    addShape({
+      ...gsnElements[0],
+      id: id3,
+      x: 250,
+      y: 300,
+      width: 180,
+      height: 70,
+      value: "Perception system is reliable",
+      idText: "G2"
+    });
+    
+    addShape({
+      ...gsnElements[0],
+      id: id4,
+      x: 550,
+      y: 300,
+      width: 180,
+      height: 70,
+      value: "Decision making is safe",
+      idText: "G3"
+    });
+    
+    // Add connections
+    setTimeout(() => {
+      addConnection({
+        id: `conn-${Date.now()}-1`,
+        from: id1,
+        to: id2,
+        points: []
+      });
+      
+      addConnection({
+        id: `conn-${Date.now()}-2`,
+        from: id2,
+        to: id3,
+        points: []
+      });
+      
+      addConnection({
+        id: `conn-${Date.now()}-3`,
+        from: id2,
+        to: id4,
+        points: []
+      });
+    }, 100);
+  };
+  
+  const generateHazardDiagram = () => {
+    const id1 = Date.now().toString() + "1";
+    const id2 = Date.now().toString() + "2";
+    const id3 = Date.now().toString() + "3";
+    const id4 = Date.now().toString() + "4";
+    
+    // Add main goal
+    addShape({
+      ...gsnElements[0],
+      id: id1,
+      x: 400,
+      y: 100,
+      width: 200,
+      height: 80,
+      value: "All hazards are mitigated",
+      idText: "G1"
+    });
+    
+    // Add strategy
+    addShape({
+      ...gsnElements[1],
+      id: id2,
+      x: 400,
+      y: 200,
+      width: 200,
+      height: 70,
+      value: "Argument by hazard analysis",
+      idText: "S1",
+      cornerRadius: 5
+    });
+    
+    // Add subgoals
+    addShape({
+      ...gsnElements[0],
+      id: id3,
+      x: 250,
+      y: 300,
+      width: 180,
+      height: 70,
+      value: "Hazard 1 is mitigated",
+      idText: "G2"
+    });
+    
+    addShape({
+      ...gsnElements[0],
+      id: id4,
+      x: 550,
+      y: 300,
+      width: 180,
+      height: 70,
+      value: "Hazard 2 is mitigated",
+      idText: "G3"
+    });
+    
+    // Add connections
+    setTimeout(() => {
+      addConnection({
+        id: `conn-${Date.now()}-1`,
+        from: id1,
+        to: id2,
+        points: []
+      });
+      
+      addConnection({
+        id: `conn-${Date.now()}-2`,
+        from: id2,
+        to: id3,
+        points: []
+      });
+      
+      addConnection({
+        id: `conn-${Date.now()}-3`,
+        from: id2,
+        to: id4,
+        points: []
+      });
+    }, 100);
+  };
+  
+  const generateSoftwareDiagram = () => {
+    const id1 = Date.now().toString() + "1";
+    const id2 = Date.now().toString() + "2";
+    const id3 = Date.now().toString() + "3";
+    const id4 = Date.now().toString() + "4";
+    
+    // Add main goal
+    addShape({
+      ...gsnElements[0],
+      id: id1,
+      x: 400,
+      y: 100,
+      width: 200,
+      height: 80,
+      value: "Software is acceptably safe",
+      idText: "G1"
+    });
+    
+    // Add strategy
+    addShape({
+      ...gsnElements[1],
+      id: id2,
+      x: 400,
+      y: 200,
+      width: 240,
+      height: 70,
+      value: "Argument by verification & validation",
+      idText: "S1",
+      cornerRadius: 5
+    });
+    
+    // Add subgoals
+    addShape({
+      ...gsnElements[0],
+      id: id3,
+      x: 250,
+      y: 300,
+      width: 180,
+      height: 70,
+      value: "Requirements are correct",
+      idText: "G2"
+    });
+    
+    addShape({
+      ...gsnElements[0],
+      id: id4,
+      x: 550,
+      y: 300,
+      width: 180,
+      height: 70,
+      value: "Implementation is correct",
+      idText: "G3"
+    });
+    
+    // Add connections
+    setTimeout(() => {
+      addConnection({
+        id: `conn-${Date.now()}-1`,
+        from: id1,
+        to: id2,
+        points: []
+      });
+      
+      addConnection({
+        id: `conn-${Date.now()}-2`,
+        from: id2,
+        to: id3,
+        points: []
+      });
+      
+      addConnection({
+        id: `conn-${Date.now()}-3`,
+        from: id2,
+        to: id4,
+        points: []
+      });
+    }, 100);
+  };
+  
+  // Close chat button handler
+  const handleCloseChat = () => {
+    setShowChat(false);
+  };
+  
+  // Return the appropriate UI based on chat state
+  if (!showChat) {
+    // Initial panel with start button
+    return (
+      <div className="p-6 flex flex-col items-center justify-center h-full">
+        <div className="bg-blue-50 rounded-full p-3 mb-4">
+          <Sparkles size={24} className="text-blue-500" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">AI Diagram Assistant</h3>
+        <p className="text-sm text-gray-500 text-center mb-6">
+          Use AI to generate diagrams, analyze existing diagrams, or get suggestions for improvements.
+        </p>
+        <button 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          onClick={handleStartChat}
+        >
+          Start using AI
+        </button>
+      </div>
+    );
+  }
+  
+  // Chat interface
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="p-4 border-b flex items-center space-x-3">
-        <div className="bg-blue-50 rounded-full p-2">
-          <Sparkles size={20} className="text-blue-500" />
+      <div className="p-3 border-b border-gray-200 flex justify-between items-center">
+        <div className="flex items-center">
+          <div className="bg-blue-50 rounded-full p-2 mr-2">
+            <Sparkles size={18} className="text-blue-500" />
+          </div>
+          <h3 className="text-md font-medium">AI Diagram Assistant</h3>
         </div>
-        <div>
-          <h3 className="font-medium">AI Diagram Assistant</h3>
-          <p className="text-xs text-gray-500">
-            {shapes.length} elements • {connections.length} connections
-          </p>
-        </div>
+        <button 
+          className="text-gray-500 hover:text-gray-700 p-1"
+          onClick={handleCloseChat}
+        >
+          <X size={18} />
+        </button>
       </div>
-
-      {/* Chat Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div 
-            key={message.id} 
-            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+      
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-4">
+          {messages.map((message, index) => (
             <div 
-              className={`max-w-[80%] rounded-lg p-3 ${
-                message.sender === 'user' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-800'
-              }`}
+              key={index} 
+              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                {message.sender === 'user' ? (
-                  <User size={14} className="opacity-70" />
-                ) : (
-                  <Bot size={14} className="opacity-70" />
-                )}
-                <span className="text-xs opacity-70">
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-              <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-            </div>
-          </div>
-        ))}
-        
-        {isProcessing && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 text-gray-800 rounded-lg p-3 max-w-[80%]">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              <div 
+                className={`max-w-[80%] p-3 rounded-lg ${
+                  message.sender === 'user' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+              >
+                {message.content}
               </div>
             </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="p-4 border-t bg-gray-50">
-        <div className="flex gap-2 mb-2 overflow-x-auto">
-          <button 
-            onClick={() => setInputValue('Generate a simple flowchart')}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-white border rounded-full"
-          >
-            <Workflow size={14} /> Flowchart
-          </button>
-          <button 
-            onClick={() => setInputValue('Analyze my diagram')}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-white border rounded-full"
-          >
-            <ListTree size={14} /> Analyze
-          </button>
-          <button 
-            onClick={() => setInputValue('Optimize the layout')}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-white border rounded-full"
-          >
-            <Wand2 size={14} /> Optimize
-          </button>
+          ))}
+          
+          {isGenerating && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 text-gray-800 p-3 rounded-lg">
+                <div className="flex space-x-1 items-center">
+                  <div>Generating...</div>
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div ref={messagesEndRef}></div>
         </div>
-        
-        <div className="relative">
+      </div>
+      
+      {/* Input */}
+      <div className="p-3 border-t border-gray-200">
+        <div className="flex items-center">
           <input
             type="text"
+            className="flex-1 p-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Tell me what diagram to create..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about your diagram..."
-            className="w-full pr-10 pl-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-            disabled={isProcessing}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
           />
           <button
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isProcessing}
-            className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full ${
-              inputValue.trim() && !isProcessing 
-                ? 'text-blue-500 hover:bg-blue-50' 
-                : 'text-gray-400'
+            className={`p-2 rounded-r-md ${
+              inputValue.trim() && !isGenerating 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
+            onClick={handleSendMessage}
+            disabled={!inputValue.trim() || isGenerating}
           >
             <Send size={18} />
           </button>
