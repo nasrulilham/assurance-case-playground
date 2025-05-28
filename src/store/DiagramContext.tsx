@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useReducer, useRef } from 'react';
 import { ShapeOnCanvas, Connection } from '../types/shapes';
 import { exportDiagram as exportDiagramUtil } from '../components/export/exportutils';
 import { importDiagram as importDiagramUtil } from '../components/import/importutils';
@@ -38,7 +38,7 @@ interface DiagramContextType extends DiagramState {
   addConnection: (connection: Connection) => void;
   updateConnection: (id: string, points: number[]) => void;
   deleteConnection: (id: string) => void;
-  stageRef: React.RefObject<any>;
+  stageRef: React.RefObject<unknown>;
   exportDiagram: (format: string) => void;
   importDiagram: (content: string, format: 'json' | 'xml') => void;
   clearDiagram: () => void;
@@ -278,7 +278,7 @@ const DiagramContext = createContext<DiagramContextType | undefined>(undefined);
 
 export const DiagramProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(diagramReducer, initialState);
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<never>(null);
   
   const addShape = (shape: ShapeOnCanvas) => {
     dispatch({ type: 'ADD_SHAPE', payload: shape });
@@ -349,9 +349,9 @@ export const DiagramProvider: React.FC<{ children: React.ReactNode }> = ({ child
     dispatch({ type: 'SET_ZOOM', payload: level });
   };
   
-  const setStageSize = (size: { width: number; height: number }) => {
-    dispatch({ type: 'SET_STAGE_SIZE', payload: size });
-  };
+const setStageSize = useCallback((size: { width: number; height: number }) => {
+  dispatch({ type: 'SET_STAGE_SIZE', payload: size });
+}, []); // Empty dependency array makes this stable
   
   const toggleSidebar = () => {
     dispatch({ type: 'TOGGLE_SIDEBAR' });

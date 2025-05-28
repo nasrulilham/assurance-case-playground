@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Stage, Layer } from 'react-konva';
 import { useDiagramContext } from '../../store/DiagramContext';
 import GridBackground from './GridBackground';
@@ -8,12 +8,12 @@ import { KonvaEventObject } from 'konva/lib/Node';
 
 const DiagramCanvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  const { 
-    shapes, 
+
+  const {
+    shapes,
     connections,
-    selectedId, 
-    setSelectedId, 
+    selectedId,
+    setSelectedId,
     addShape,
     updateShapePosition,
     zoomLevel,
@@ -23,21 +23,52 @@ const DiagramCanvas: React.FC = () => {
     stageRef
   } = useDiagramContext();
 
-  useEffect(() => {
+  const updateSize = useCallback(() => {
     if (!containerRef.current) return;
 
-    const updateSize = () => {
-      const { width, height } = containerRef.current!.getBoundingClientRect();
-      setStageSize({ width, height });
-    };
+    const { width, height } = containerRef.current.getBoundingClientRect();
 
+    // Only update if size actually changed
+    setStageSize(prev => {
+      const roundedWidth = Math.round(width);
+      const roundedHeight = Math.round(height);
+      return (prev.width === roundedWidth && prev.height === roundedHeight)
+        ? prev
+        : { width: roundedWidth, height: roundedHeight };
+    });
+  }, [setStageSize]); // setStageSize is now stable
+
+  useEffect(() => {
     updateSize();
-    window.addEventListener('resize', updateSize);
-    
+
+    // Add debounce to resize handler
+    const handleResize = debounce(updateSize, 100);
+    window.addEventListener('resize', handleResize);
+
     return () => {
-      window.removeEventListener('resize', updateSize);
+      window.removeEventListener('resize', handleResize);
     };
-  }, [setStageSize]);
+  }, [updateSize]); // Now depends on memoized callback
+
+  function debounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
+    let timeoutId: number;
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => fn(...args), delay);
+    };
+  }
+
+  useEffect(() => {
+    updateSize();
+
+    // Add debounce to resize handler
+    const handleResize = debounce(updateSize, 100);
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [updateSize]); // Now depends on memoized callback
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -45,18 +76,18 @@ const DiagramCanvas: React.FC = () => {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    
+
     const shapeData = e.dataTransfer.getData('shape');
     if (!shapeData) return;
-    
+
     const shape = JSON.parse(shapeData);
-    
+
     const stageContainer = stageRef.current.container();
     const stagePos = stageContainer.getBoundingClientRect();
-    
+
     const x = (e.clientX - stagePos.left) / zoomLevel;
     const y = (e.clientY - stagePos.top) / zoomLevel;
-    
+
     addShape({
       ...shape,
       x,
@@ -75,7 +106,7 @@ const DiagramCanvas: React.FC = () => {
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="w-full h-full bg-gray-50 overflow-hidden"
       onDragOver={handleDragOver}
@@ -90,18 +121,18 @@ const DiagramCanvas: React.FC = () => {
         onClick={handleStageClick}
       >
         <Layer>
-          <GridBackground 
-            width={5000} 
-            height={5000} 
-            spacing={20} 
+          <GridBackground
+            width={5000}
+            height={5000}
+            spacing={20}
           />
         </Layer>
-        
+
         <Layer>
           {connections.map((connection) => (
             <Connection key={connection.id} connection={connection} />
           ))}
-          
+
           {shapes.map((shape) => (
             <DiagramShape
               key={shape.id}
