@@ -1,6 +1,6 @@
 import React from 'react';
 import { Rect, Text, Group, Transformer, Circle } from 'react-konva';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 import { ShapeOnCanvas } from '../../types/shapes';
 
 interface DiagramShapeProps {

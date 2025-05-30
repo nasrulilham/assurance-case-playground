@@ -1,13 +1,10 @@
-import React from 'react';
 import MainLayout from './components/layout/MainLayout';
-import { DiagramProvider } from './store/DiagramContext';
+import { DiagramProvider } from './context/DiagramContext';
 
-function App() {
+export default function App() {
   return (
     <DiagramProvider>
       <MainLayout />
     </DiagramProvider>
   );
 }
-
-export default App;

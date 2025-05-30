@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, FileText, Image, Code, FileJson } from 'lucide-react';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 
 interface ExportModalProps {
   isOpen: boolean;

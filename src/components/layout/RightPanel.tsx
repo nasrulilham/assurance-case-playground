@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 import ElementTab from '../properties/ElementTab';
 import TextTab from '../properties/TextTab';
 

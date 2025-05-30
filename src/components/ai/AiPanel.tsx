@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Send, User, Bot, Wand2, Workflow, ListTree } from 'lucide-react';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 import { getAIResponse } from '../../services/aiService';
 import { ShapeOnCanvas } from '../../types/shapes';
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, FileJson, Code, Upload } from 'lucide-react';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 
 interface ImportModalProps {
   isOpen: boolean;

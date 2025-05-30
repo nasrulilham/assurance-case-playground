@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 import PropertySection from './PropertySection';
 import SelectField from '../ui/SelectField';
 import TextField from '../ui/TextField';

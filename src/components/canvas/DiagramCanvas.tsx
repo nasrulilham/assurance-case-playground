@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Stage, Layer } from 'react-konva';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 import GridBackground from './GridBackground';
 import DiagramShape from './DiagramShape';
 import Connection from './Connection';

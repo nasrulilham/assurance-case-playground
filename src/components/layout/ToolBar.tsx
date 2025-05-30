@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Layout, Import, Upload, Undo2, Redo2, Type 
 } from 'lucide-react';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 import ZoomSlider from '../ui/ZoomSlider';
 import ExportModal from '../export/export';
 import ImportModal from '../import/import';

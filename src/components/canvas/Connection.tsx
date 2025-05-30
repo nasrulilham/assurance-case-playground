@@ -1,7 +1,7 @@
 import React from 'react';
 import { Line } from 'react-konva';
 import { Connection as ConnectionType } from '../../types/shapes';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 
 interface ConnectionProps {
   connection: ConnectionType;

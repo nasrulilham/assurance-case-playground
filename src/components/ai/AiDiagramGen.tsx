@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Send, Zap, Trash, Lightbulb, MessagesSquare, Settings } from 'lucide-react';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 import { ShapeOnCanvas } from '../../types/shapes';
 
 // Define types for messages

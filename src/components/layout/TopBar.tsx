@@ -1,7 +1,7 @@
 "use client"; // Wajib karena menggunakan hooks dan interaktivitas
 import React, { useState, useEffect } from 'react';
 import { Menu, Type, FolderKanban, Edit, HelpCircle, Lightbulb } from 'lucide-react';
-import { useDiagramContext } from '../../store/DiagramContext';
+import { useDiagramContext } from '../../context/DiagramContext';
 import MenuDropdown from '../ui/MenuDropdown';
 import { FcGoogle } from 'react-icons/fc';
 import { signInWithGoogle, firebaseSignOut, auth } from '../../lib/firebase/auth';

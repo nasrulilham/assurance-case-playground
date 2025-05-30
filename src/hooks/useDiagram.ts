@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useDiagramContext } from '../store/DiagramContext';
+import { useDiagramContext } from '../context/DiagramContext';
 import { Shape, ShapeOnCanvas } from '../types/shapes';
 
 export const useDiagram = () => {
